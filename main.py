@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from google.api_core import exceptions as google_exceptions
+from pydub import AudioSegment
+
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__name__))
@@ -59,7 +61,15 @@ app = FastAPI(
     version="0.1.0",
 )
 
-origins = ["*"] # Puedes cambiar esto por los orígenes específicos de tu frontend
+origins = [
+    "http://localhost:8000",  # Ejemplo si tu frontend corre en localhost:8000
+    "http://localhost:3000",  # Ejemplo si usas React en localhost:3000
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:3000",
+    "null"
+    #"odontograma-g7hyemacauerc5ac.canadacentral-01.azurewebsites.net",
+    #"https://storagecategorization-secondary.z13.web.core.windows.net"
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -81,18 +91,43 @@ async def analyze_audio_gemini(
     if not audio_file.content_type.startswith("audio/"):
         raise HTTPException(status_code=400, detail="El archivo subido no es un archivo de audio válido.")
 
-    if not audio_file.content_type in ["audio/wav", "audio/mp3", "audio/mpeg"]:
-        raise HTTPException(status_code=400, detail=f"Tipo de audio no soportado por Gemini para carga directa: {audio_file.content_type}. Intenta con WAV o MP3.")
+    #if not audio_file.content_type in ["audio/wav", "audio/mp3", "audio/mpeg"]:
+    #    #print(f"Tipo de audio recibido: {audio_file.content_type}")
+    #    raise HTTPException(status_code=400, detail=f"Tipo de audio no soportado por Gemini para carga directa: {audio_file.content_type}. Intenta con WAV o MP3.")
 
+    original_mime_type = audio_file.content_type
 
     try:
-        # Leer el contenido del audio
-        audio_bytes = await audio_file.read()
+        audio_content = await audio_file.read()
 
+        if original_mime_type == "audio/webm":
+            # Leer el audio WebM desde bytes
+            audio_segment = AudioSegment.from_file(io.BytesIO(audio_content), format="webm")
+            
+            # Exportar a MP3 en un buffer de bytes
+            mp3_buffer = io.BytesIO()
+            audio_segment.export(mp3_buffer, format="mp3")
+            mp3_buffer.seek(0) # Volver al inicio del buffer
+            
+            processed_audio_bytes = mp3_buffer.read()
+            processed_mime_type = "audio/mpeg" # MP3 es audio/mpeg
+        elif original_mime_type in ["audio/wav", "audio/mp3", "audio/mpeg"]:
+            processed_audio_bytes = audio_content
+            processed_mime_type = original_mime_type
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Tipo de audio no soportado para procesamiento: {original_mime_type}. Soporta: WAV, MP3, MPEG, WEBM."
+            )
+        
+        if not processed_audio_bytes:
+             raise HTTPException(status_code=500, detail="Error en la preparación del audio para Gemini.")
+
+        
         # Crear un objeto genai.upload_file para el audio
         # Nota: La API de Gemini requiere subir el archivo a su infraestructura temporal
         # para procesamiento multimodal. Esto no es para archivos muy grandes.
-        uploaded_audio = genai.upload_file(io.BytesIO(audio_bytes), mime_type=audio_file.content_type)
+        uploaded_audio = genai.upload_file(io.BytesIO(processed_audio_bytes), mime_type=processed_mime_type)
         print(f"Archivo '{audio_file.filename}' subido temporalmente para Gemini.")
 
         # Iniciar el chat con el modelo Gemini
