@@ -67,8 +67,8 @@ origins = [
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
     "null",
-    "odontograma-g7hyemacauerc5ac.canadacentral-01.azurewebsites.net",
-    "https://odontohtml.z9.web.core.windows.net/"
+    "https://odontohtml.z9.web.core.windows.net/",
+    "https://odontohtml-secondary.z9.web.core.windows.net/"
 ]
 
 app.add_middleware(
@@ -88,14 +88,15 @@ async def analyze_audio_gemini(
     Recibe un archivo de audio y lo procesa con Google Gemini para análisis multimodal.
     No es un servicio de transcripción pura, sino para entender el audio en un contexto.
     """
-    if not audio_file.content_type.startswith("audio/"):
-        raise HTTPException(status_code=400, detail="El archivo subido no es un archivo de audio válido.")
+    #if not audio_file.content_type.startswith("audio/"):
+    #    raise HTTPException(status_code=400, detail="El archivo subido no es un archivo de audio válido.")
 
     #if not audio_file.content_type in ["audio/wav", "audio/mp3", "audio/mpeg"]:
     #    #print(f"Tipo de audio recibido: {audio_file.content_type}")
     #    raise HTTPException(status_code=400, detail=f"Tipo de audio no soportado por Gemini para carga directa: {audio_file.content_type}. Intenta con WAV o MP3.")
 
     original_mime_type = audio_file.content_type
+    print(original_mime_type)
 
     try:
         audio_content = await audio_file.read()
