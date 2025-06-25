@@ -66,9 +66,8 @@ origins = [
     "http://localhost:3000",  # Ejemplo si usas React en localhost:3000
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
-    "null"
-    #"odontograma-g7hyemacauerc5ac.canadacentral-01.azurewebsites.net",
-    #"https://storagecategorization-secondary.z13.web.core.windows.net"
+    "null",
+    "odontograma-g7hyemacauerc5ac.canadacentral-01.azurewebsites.net"
 ]
 
 app.add_middleware(
