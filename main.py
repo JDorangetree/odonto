@@ -67,7 +67,8 @@ origins = [
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
     "null",
-    "odontograma-g7hyemacauerc5ac.canadacentral-01.azurewebsites.net"
+    "odontograma-g7hyemacauerc5ac.canadacentral-01.azurewebsites.net",
+    "https://odontohtml.z9.web.core.windows.net/"
 ]
 
 app.add_middleware(
