@@ -67,8 +67,8 @@ origins = [
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3000",
     "null",
-    "https://odontohtml.z9.web.core.windows.net/",
-    "https://odontohtml-secondary.z9.web.core.windows.net/"
+    "https://odontoweb.z9.web.core.windows.net/",
+    "https://odontoweb-secondary.z9.web.core.windows.net/"
 ]
 
 app.add_middleware(
