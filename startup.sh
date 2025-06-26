@@ -25,6 +25,4 @@ echo "ffmpeg/ffprobe installation complete or verified."
 # Comando para iniciar tu aplicación FastAPI
 # Reemplaza 'main:app' si tu archivo y objeto FastAPI tienen otros nombres
 # Usamos gunicorn como servidor de producción, con uvicorn workers
-exec gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 main:app
-
-echo "Application started."
+exec uvicorn main:app --host 0.0.0.0 --port $PORT
