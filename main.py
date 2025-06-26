@@ -2,6 +2,7 @@ import os
 import io
 import json
 from dotenv import load_dotenv
+import logging
 import google.generativeai as genai
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, status, UploadFile, File
@@ -26,7 +27,9 @@ if GOOGLE_API_KEY:
 else:
      print("ADVERTENCIA: GOOGLE_API_KEY no configurada. El endpoint /generate/ no funcionará.")
 
-
+# Configuración del logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # --- Cargar los prompts desde el archivo JSON al inicio ---
 LOADED_PROMPTS: dict = {}
@@ -96,12 +99,14 @@ async def analyze_audio_gemini(
     #    raise HTTPException(status_code=400, detail=f"Tipo de audio no soportado por Gemini para carga directa: {audio_file.content_type}. Intenta con WAV o MP3.")
 
     original_mime_type = audio_file.content_type
+    logger.info(f"Audio recibido: {audio_file.filename}, Tipo: {original_mime_type}")
     print(original_mime_type)
 
     try:
         audio_content = await audio_file.read()
 
         if original_mime_type == "audio/webm":
+            logger.info("Detectado archivo WebM. Convirtiendo a MP3...")
             # Leer el audio WebM desde bytes
             audio_segment = AudioSegment.from_file(io.BytesIO(audio_content), format="webm")
             
@@ -112,9 +117,11 @@ async def analyze_audio_gemini(
             
             processed_audio_bytes = mp3_buffer.read()
             processed_mime_type = "audio/mpeg" # MP3 es audio/mpeg
+            logger.info("Conversión a MP3 completada.")
         elif original_mime_type in ["audio/wav", "audio/mp3", "audio/mpeg"]:
             processed_audio_bytes = audio_content
             processed_mime_type = original_mime_type
+            logger.info(f"Tipo de audio ({original_mime_type}) compatible directamente con Gemini. No se requiere conversión.")
         else:
             raise HTTPException(
                 status_code=400,
@@ -129,6 +136,7 @@ async def analyze_audio_gemini(
         # Nota: La API de Gemini requiere subir el archivo a su infraestructura temporal
         # para procesamiento multimodal. Esto no es para archivos muy grandes.
         uploaded_audio = genai.upload_file(io.BytesIO(processed_audio_bytes), mime_type=processed_mime_type)
+        logger.info(f"Archivo '{audio_file.filename}' subido temporalmente para Gemini con MIME type: {processed_mime_type}.")
         print(f"Archivo '{audio_file.filename}' subido temporalmente para Gemini.")
 
         # Iniciar el chat con el modelo Gemini
@@ -145,11 +153,14 @@ async def analyze_audio_gemini(
         ]
 
         print("Enviando audio y prompt a Gemini para análisis...")
-        response = await chat.send_message_async(contents) # Usar async para non-blocking I/O
+        #response = await chat.send_message_async(contents) # Usar async para non-blocking I/O
+        response = await model.generate_content_async(contents)
+        logger.info("Enviando audio y prompt a Gemini para análisis...")
         response = response.text
         
         # Eliminar el archivo subido temporalmente después de usarlo
         genai.delete_file(uploaded_audio.name)
+        logger.info(f"Archivo temporal '{uploaded_audio.name}' eliminado.")
         print(f"Archivo temporal '{uploaded_audio.name}' eliminado.")
 
         cleaned_json_string = response.replace("```json\n", "").replace("\n```", "")
