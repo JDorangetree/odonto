@@ -14,7 +14,7 @@ from pydub import AudioSegment
 
 BASE_DIR = os.path.dirname(os.path.abspath(__name__))
 PROMPTS_FILE_PATH = os.path.join(BASE_DIR, 'Prompts', 'prompts.json')
-
+# diego vargas
 # Carga las variables de entorno desde un archivo .env
 load_dotenv()
 
